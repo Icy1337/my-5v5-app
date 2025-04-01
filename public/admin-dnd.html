@@ -50,6 +50,7 @@
     let currentPlayers = [];
     let roomId;
     let password;
+    let draggedEl = null;
 
     const unassignedBox = document.getElementById("unassignedBox");
     const teamABox = document.getElementById("teamABox");
@@ -153,7 +154,6 @@
         return div;
     }
 
-    let draggedEl = null;
     function onDragStart(e) {
         draggedEl = e.target;
         e.dataTransfer.effectAllowed = "move";
