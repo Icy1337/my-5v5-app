@@ -46,7 +46,7 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    let socket;
+    const socket = io();
     let currentPlayers = [];
     let roomId;
     let password;
@@ -162,16 +162,21 @@
     [unassignedBox, teamABox, teamBBox].forEach((box) => {
         box.addEventListener("dragover", (e) => {
             e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
             box.classList.add("drag-over");
         });
-        box.addEventListener("dragenter", (e) => e.preventDefault());
-        box.addEventListener("dragleave", () =>
-            box.classList.remove("drag-over"),
-        );
+        box.addEventListener("dragenter", (e) => {
+            e.preventDefault();
+            box.classList.add("drag-over");
+        });
+        box.addEventListener("dragleave", () => {
+            box.classList.remove("drag-over");
+        });
         box.addEventListener("drop", (e) => {
             e.preventDefault();
             box.classList.remove("drag-over");
             if (draggedEl) {
+                const oldParent = draggedEl.parentNode;
                 box.appendChild(draggedEl);
                 draggedEl = null;
             }
