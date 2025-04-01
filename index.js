@@ -1,4 +1,4 @@
-require("dotenv").config(); // if using .env for secrets
+require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const path = require("path");
