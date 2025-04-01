@@ -66,9 +66,6 @@
             alert("Please enter room ID and password!");
             return;
         }
-        // Connect socket
-        socket = io({ autoConnect: false });
-        socket.connect();
 
         // Listen for connect, then watch the room
         socket.on("connect", () => {
