@@ -1,184 +1,196 @@
 <!doctype html>
 <html>
-<head>
-    <meta charset="UTF-8" />
-    <title>Admin Drag & Drop</title>
-    <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-<div class="dnd-container">
-    <h1>Secret Admin DnD Panel</h1>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Admin Drag & Drop</title>
+        <link rel="stylesheet" href="/style.css" />
+    </head>
+    <body>
+        <div class="dnd-container">
+            <h1>Secret Admin DnD Panel</h1>
 
-    <!-- Room ID, password, connect button (all centered) -->
-    <div style="display: flex; flex-direction: column; align-items: center">
-        <input
-                type="text"
-                id="roomIdInput"
-                placeholder="Room ID"
-                style="text-align: center"
-        />
-        <input
-                type="password"
-                id="passwordInput"
-                placeholder="Admin Password"
-                style="text-align: center"
-        />
-        <button id="connectBtn" style="margin-top: 1rem">Connect</button>
-    </div>
+            <!-- Room ID, password, connect button (all centered) -->
+            <div
+                style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                "
+            >
+                <input
+                    type="text"
+                    id="roomIdInput"
+                    placeholder="Room ID"
+                    style="text-align: center"
+                />
+                <input
+                    type="password"
+                    id="passwordInput"
+                    placeholder="Admin Password"
+                    style="text-align: center"
+                />
+                <button id="connectBtn" style="margin-top: 1rem">
+                    Connect
+                </button>
+            </div>
 
-    <h3>Unassigned Players</h3>
-    <div class="dnd-box" id="unassignedBox"></div>
+            <h3>Unassigned Players</h3>
+            <div class="dnd-box" id="unassignedBox"></div>
 
-    <div class="dnd-teams">
-        <div>
-            <h3>Team A</h3>
-            <div class="dnd-box" id="teamABox"></div>
+            <div class="dnd-teams">
+                <div>
+                    <h3>Team A</h3>
+                    <div class="dnd-box" id="teamABox"></div>
+                </div>
+                <div>
+                    <h3>Team B</h3>
+                    <div class="dnd-box" id="teamBBox"></div>
+                </div>
+            </div>
+
+            <button id="rigTeamsBtn" style="margin-top: 1rem">Rig Teams</button>
+            <p id="statusMsg" style="color: red; margin-top: 1rem"></p>
         </div>
-        <div>
-            <h3>Team B</h3>
-            <div class="dnd-box" id="teamBBox"></div>
-        </div>
-    </div>
 
-    <button id="rigTeamsBtn" style="margin-top: 1rem">Rig Teams</button>
-    <p id="statusMsg" style="color: red; margin-top: 1rem"></p>
-</div>
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            let socket;
+            let currentPlayers = [];
+            let roomId;
+            let password;
+            let draggedEl = null;
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io();
-    let currentPlayers = [];
-    let roomId;
-    let password;
-    let draggedEl = null;
+            const unassignedBox = document.getElementById("unassignedBox");
+            const teamABox = document.getElementById("teamABox");
+            const teamBBox = document.getElementById("teamBBox");
+            const connectBtn = document.getElementById("connectBtn");
+            const rigTeamsBtn = document.getElementById("rigTeamsBtn");
+            const statusMsg = document.getElementById("statusMsg");
 
-    const unassignedBox = document.getElementById("unassignedBox");
-    const teamABox = document.getElementById("teamABox");
-    const teamBBox = document.getElementById("teamBBox");
-    const connectBtn = document.getElementById("connectBtn");
-    const rigTeamsBtn = document.getElementById("rigTeamsBtn");
-    const statusMsg = document.getElementById("statusMsg");
+            connectBtn.addEventListener("click", () => {
+                roomId = document.getElementById("roomIdInput").value.trim();
+                password = document.getElementById("passwordInput").value;
+                if (!roomId || !password) {
+                    alert("Please enter room ID and password!");
+                    return;
+                }
 
-    connectBtn.addEventListener("click", () => {
-        roomId = document.getElementById("roomIdInput").value.trim();
-        password = document.getElementById("passwordInput").value;
-        if (!roomId || !password) {
-            alert("Please enter room ID and password!");
-            return;
-        }
+                socket = io({ autoConnect: false });
+                socket.connect();
 
-        // Listen for connect, then watch the room
-        socket.on("connect", () => {
-            console.log("Admin panel connected to socket.io");
-            socket.emit("adminWatchRoom", { roomId, password });
-        });
+                // Listen for connect, then watch the room
+                socket.on("connect", () => {
+                    console.log("Admin panel connected to socket.io");
+                    socket.emit("adminWatchRoom", { roomId, password });
+                });
 
-        socket.on("updatePlayers", (players) => {
-            currentPlayers = players;
-            renderPlayers();
-        });
+                socket.on("updatePlayers", (players) => {
+                    currentPlayers = players;
+                    renderPlayers();
+                });
 
-        // If there's an error rigging
-        socket.on("rigError", (msg) => {
-            statusMsg.style.color = "red";
-            statusMsg.textContent = msg;
-        });
+                // If there's an error rigging
+                socket.on("rigError", (msg) => {
+                    statusMsg.style.color = "red";
+                    statusMsg.textContent = msg;
+                });
 
-        // If rigging succeeded
-        socket.on("rigTeamsSuccess", (msg) => {
-            statusMsg.style.color = "green";
-            statusMsg.textContent = msg;
-        });
+                // If rigging succeeded
+                socket.on("rigTeamsSuccess", (msg) => {
+                    statusMsg.style.color = "green";
+                    statusMsg.textContent = msg;
+                });
+            });
 
-        // No further drag & drop logic changes needed below
-    });
+            rigTeamsBtn.addEventListener("click", () => {
+                if (!socket || !socket.connected) {
+                    alert("Not connected yet!");
+                    return;
+                }
+                statusMsg.style.color = "blue";
+                statusMsg.textContent = "Sending rigTeamsRequest...";
 
-    rigTeamsBtn.addEventListener("click", () => {
-        if (!socket || !socket.connected) {
-            alert("Not connected yet!");
-            return;
-        }
-        statusMsg.style.color = "blue";
-        statusMsg.textContent = "Sending rigTeamsRequest...";
+                const teamA = [
+                    ...teamABox.querySelectorAll(".player-item"),
+                ].map((d) => d.dataset.name);
+                const teamB = [
+                    ...teamBBox.querySelectorAll(".player-item"),
+                ].map((d) => d.dataset.name);
 
-        const teamA = [...teamABox.querySelectorAll(".player-item")].map(
-            (d) => d.dataset.name,
-        );
-        const teamB = [...teamBBox.querySelectorAll(".player-item")].map(
-            (d) => d.dataset.name,
-        );
+                socket.emit("rigTeamsRequest", {
+                    roomId,
+                    password,
+                    teamA,
+                    teamB,
+                });
+            });
 
-        socket.emit("rigTeamsRequest", { roomId, password, teamA, teamB });
-    });
+            // The room receives "startDrumroll" and "teamsGenerated"
+            // so they hear the sound. The admin panel doesn't necessarily
+            // need to hear the sound. If you want the admin to also hear it,
+            // you can add a local "startDrumroll" listener + audio, but
+            // that might not be required.
 
-    socket.on("rigTeamsSuccess", (msg) => {
-        statusMsg.style.color = "green";
-        statusMsg.textContent = msg;
-    });
+            function renderPlayers() {
+                // If players are in teamA/teamB boxes, keep them there
+                // Otherwise, put them in "unassigned"
+                unassignedBox.innerHTML = "";
+                const assignedA = Array.from(
+                    teamABox.querySelectorAll(".player-item"),
+                ).map((div) => div.dataset.name);
+                const assignedB = Array.from(
+                    teamBBox.querySelectorAll(".player-item"),
+                ).map((div) => div.dataset.name);
 
-    // The room receives "startDrumroll" and "teamsGenerated"
-    // so they hear the sound. The admin panel doesn't necessarily
-    // need to hear the sound. If you want the admin to also hear it,
-    // you can add a local "startDrumroll" listener + audio, but
-    // that might not be required.
-
-    function renderPlayers() {
-        // If players are in teamA/teamB boxes, keep them there
-        // Otherwise, put them in "unassigned"
-        unassignedBox.innerHTML = "";
-        const assignedA = Array.from(
-            teamABox.querySelectorAll(".player-item"),
-        ).map((div) => div.dataset.name);
-        const assignedB = Array.from(
-            teamBBox.querySelectorAll(".player-item"),
-        ).map((div) => div.dataset.name);
-
-        currentPlayers.forEach((p) => {
-            if (!assignedA.includes(p.name) && !assignedB.includes(p.name)) {
-                const div = createPlayerDiv(p.name);
-                unassignedBox.appendChild(div);
+                currentPlayers.forEach((p) => {
+                    if (
+                        !assignedA.includes(p.name) &&
+                        !assignedB.includes(p.name)
+                    ) {
+                        const div = createPlayerDiv(p.name);
+                        unassignedBox.appendChild(div);
+                    }
+                });
             }
-        });
-    }
 
-    function createPlayerDiv(name) {
-        const div = document.createElement("div");
-        div.className = "player-item";
-        div.textContent = name;
-        div.draggable = true;
-        div.dataset.name = name;
-        div.addEventListener("dragstart", onDragStart);
-        return div;
-    }
-
-    function onDragStart(e) {
-        draggedEl = e.target;
-        e.dataTransfer.effectAllowed = "move";
-    }
-
-    [unassignedBox, teamABox, teamBBox].forEach((box) => {
-        box.addEventListener("dragover", (e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = "move";
-            box.classList.add("drag-over");
-        });
-        box.addEventListener("dragenter", (e) => {
-            e.preventDefault();
-            box.classList.add("drag-over");
-        });
-        box.addEventListener("dragleave", () => {
-            box.classList.remove("drag-over");
-        });
-        box.addEventListener("drop", (e) => {
-            e.preventDefault();
-            box.classList.remove("drag-over");
-            if (draggedEl) {
-                const oldParent = draggedEl.parentNode;
-                box.appendChild(draggedEl);
-                draggedEl = null;
+            function createPlayerDiv(name) {
+                const div = document.createElement("div");
+                div.className = "player-item";
+                div.textContent = name;
+                div.draggable = true;
+                div.dataset.name = name;
+                div.addEventListener("dragstart", onDragStart);
+                return div;
             }
-        });
-    });
-</script>
-</body>
+
+            function onDragStart(e) {
+                draggedEl = e.target;
+                e.dataTransfer.effectAllowed = "move";
+            }
+
+            [unassignedBox, teamABox, teamBBox].forEach((box) => {
+                box.addEventListener("dragover", (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = "move";
+                    box.classList.add("drag-over");
+                });
+                box.addEventListener("dragenter", (e) => {
+                    e.preventDefault();
+                    box.classList.add("drag-over");
+                });
+                box.addEventListener("dragleave", () => {
+                    box.classList.remove("drag-over");
+                });
+                box.addEventListener("drop", (e) => {
+                    e.preventDefault();
+                    box.classList.remove("drag-over");
+                    if (draggedEl) {
+                        const oldParent = draggedEl.parentNode;
+                        box.appendChild(draggedEl);
+                        draggedEl = null;
+                    }
+                });
+            });
+        </script>
+    </body>
 </html>
