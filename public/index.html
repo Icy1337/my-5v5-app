@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>5v5 Generator</title>
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="container">
+    <h1>5v5 Team Generator</h1>
+    <button id="createRoomBtn">Create a Room</button>
+</div>
+
+<script>
+    function createRoom() {
+        // Generate random room ID
+        const roomId = Math.random().toString(36).substring(2, 8);
+        // Mark ourselves as the host in localStorage (for that room)
+        localStorage.setItem(`host-${roomId}`, "true");
+        // Redirect to the room
+        window.location.href = `/room/${roomId}`;
+    }
+
+    // Button click listener
+    document
+        .getElementById("createRoomBtn")
+        .addEventListener("click", createRoom);
+
+    // Keydown listener (press Enter anywhere on page)
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            createRoom();
+        }
+    });
+</script>
+</body>
+</html>

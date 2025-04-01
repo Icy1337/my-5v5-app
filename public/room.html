@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>Room</title>
+    <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<div class="container" id="roomContainer">
+    <div id="joinSection">
+        <h2>Enter Nickname</h2>
+        <input id="nameInput" type="text" placeholder="Your nickname" />
+        <br />
+        <button id="joinBtn">Join</button>
+    </div>
+
+    <!-- Share Link area (bigger field, copy below) -->
+    <div
+            id="shareLinkContainer"
+            style="display: none; margin-top: 1rem"
+    >
+        <p>Share this link:</p>
+        <input type="text" id="shareLink" readonly />
+        <br />
+        <button id="copyLinkBtn">Copy</button>
+    </div>
+
+    <h3>Players in room:</h3>
+    <ul id="playersList"></ul>
+
+    <button
+            id="generateTeamsBtn"
+            style="display: none; margin-top: 1rem"
+    >
+        Generate Teams
+    </button>
+
+    <div id="teamsContainer"></div>
+</div>
+
+<!-- Full-screen cursor layer -->
+<div id="cursorLayer"></div>
+
+<!-- Drumroll audio -->
+<audio id="drumrollSound" src="/drumroll.mp3" preload="auto"></audio>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    const roomId = window.location.pathname.split("/").pop();
+
+    let isHost = localStorage.getItem(`host-${roomId}`) === "true";
+    let hasJoined = false;
+
+    // Elements
+    const joinSection = document.getElementById("joinSection");
+    const nameInput = document.getElementById("nameInput");
+    const joinBtn = document.getElementById("joinBtn");
+    const shareLinkContainer =
+        document.getElementById("shareLinkContainer");
+    const shareLinkInput = document.getElementById("shareLink");
+    shareLinkInput.value = window.location.href;
+    const copyLinkBtn = document.getElementById("copyLinkBtn");
+    const playersList = document.getElementById("playersList");
+    const generateTeamsBtn =
+        document.getElementById("generateTeamsBtn");
+    const teamsContainer = document.getElementById("teamsContainer");
+    const drumrollSound = document.getElementById("drumrollSound");
+    const cursorLayer = document.getElementById("cursorLayer");
+
+    // ====== JOIN LOGIC ======
+    joinBtn.addEventListener("click", handleJoin);
+
+    // Press Enter -> Join
+    nameInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            handleJoin();
+        }
+    });
+
+    function handleJoin() {
+        if (hasJoined) return;
+        const playerName = nameInput.value.trim();
+        if (!playerName) return;
+        socket.emit("joinRoom", { roomId, playerName, isHost });
+    }
+
+    // If join error
+    socket.on("joinError", (msg) => {
+        alert(msg);
+    });
+
+    // Once we get an update of players, we consider ourselves joined
+    socket.on("updatePlayers", (players) => {
+        if (!hasJoined) {
+            joinSection.style.display = "none";
+            shareLinkContainer.style.display = "block";
+            hasJoined = true;
+        }
+
+        playersList.innerHTML = "";
+        players.forEach((p) => {
+            const li = document.createElement("li");
+            li.textContent =
+                p.name + (p.id === socket.id ? " (You)" : "");
+            li.style.color = p.color;
+            playersList.appendChild(li);
+        });
+
+        // If I'm host, show generate button
+        if (isHost) {
+            generateTeamsBtn.style.display = "inline-block";
+        } else {
+            generateTeamsBtn.style.display = "none";
+        }
+    });
+
+    // ====== COPY LINK ======
+    copyLinkBtn.addEventListener("click", () => {
+        shareLinkInput.select();
+        document.execCommand("copy");
+        alert("Link copied!");
+    });
+
+    // ====== CURSOR MOVEMENT ======
+    document.addEventListener("mousemove", (e) => {
+        if (!hasJoined) return;
+        socket.emit("cursorMove", {
+            roomId,
+            x: e.clientX,
+            y: e.clientY,
+        });
+    });
+
+    socket.on("updatePlayers", (players) => {
+        cursorLayer.innerHTML = "";
+        players.forEach((p) => {
+            const label = document.createElement("div");
+            label.className = "cursor-label";
+            label.style.left = p.x + "px";
+            label.style.top = p.y + "px";
+            label.style.color = p.color;
+            label.textContent = p.name;
+            cursorLayer.appendChild(label);
+        });
+    });
+
+    // ====== START RANDOM TEAMS (HOST) ======
+    generateTeamsBtn.addEventListener("click", handleGenerateTeams);
+
+    // Press Enter -> Generate Teams (if I'm host and the button is visible)
+    document.addEventListener("keydown", (e) => {
+        if (
+            e.key === "Enter" &&
+            generateTeamsBtn.style.display !== "none"
+        ) {
+            handleGenerateTeams();
+        }
+    });
+
+    function handleGenerateTeams() {
+        if (!isHost) return;
+        // Ask server to start random teams
+        socket.emit("startRandomTeams", roomId);
+    }
+
+    // ====== DRUMROLL + TEAMS GENERATION ======
+    // 1) "startDrumroll" from server => everyone plays sound, shows "Generating..."
+    socket.on("startDrumroll", () => {
+        teamsContainer.style.border = "none";
+        teamsContainer.innerHTML = `<p>Generating teams... Hang tight!</p>`;
+        drumrollSound.currentTime = 0;
+        drumrollSound.play();
+    });
+
+    // 2) After 3s, the server sends "teamsGenerated"
+    socket.on("teamsGenerated", (data) => {
+        if (data.error) {
+            teamsContainer.innerHTML = `<p style="color:red">${data.error}</p>`;
+            return;
+        }
+        const { teamA, teamB } = data;
+        teamsContainer.style.border = "2px dashed #ff0080";
+
+        const teamAHtml = teamA
+            .map((p) => `<li style="color:${p.color}">${p.name}</li>`)
+            .join("");
+        const teamBHtml = teamB
+            .map((p) => `<li style="color:${p.color}">${p.name}</li>`)
+            .join("");
+
+        teamsContainer.innerHTML = `
+        <h3>Team A</h3>
+        <ul>${teamAHtml}</ul>
+        <h3>Team B</h3>
+        <ul>${teamBHtml}</ul>
+      `;
+    });
+</script>
+</body>
+</html>

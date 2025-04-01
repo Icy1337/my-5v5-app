@@ -1,0 +1,156 @@
+/* Example silly comic style */
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background-color: #fffcf0; /* comic style background */
+    color: #333;
+    font-family: "Comic Sans MS", "Comic Sans", cursive;
+}
+
+.container {
+    max-width: 600px;
+    margin: 2rem auto;
+    text-align: center;
+    padding-bottom: 3rem; /* a bit more bottom spacing */
+}
+
+h1, h2, h3 {
+    color: #ff0080;
+}
+
+button {
+    background-color: #3b83f7;
+    color: #fff;
+    border: none;
+    border-radius: 1.2rem;
+    padding: 0.8rem 1.6rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+button:hover {
+    transform: scale(1.05);
+    background-color: #2a5eca;
+}
+
+input[type="text"], input[type="password"] {
+    font-family: inherit;
+    padding: 0.5rem;
+    border: 2px solid #ff0080;
+    border-radius: 0.5rem;
+    width: 80%;
+    max-width: 300px;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+}
+
+/* The bigger share link input */
+#shareLink {
+    width: 600px; /* increase width */
+    max-width: 90%;
+    margin: 0 auto;
+    border: 2px solid #ff0080;
+    border-radius: 0.5rem;
+    padding: 0.5rem;
+    font-size: 1rem;
+    font-family: inherit;
+    text-align: center;
+}
+
+/* The copy button can be placed below or however you like */
+#copyLinkBtn {
+    background-color: #3b83f7;
+    color: #fff;
+    border: none;
+    border-radius: 1.2rem;
+    padding: 0.6rem 1rem;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 0.5rem; /* put some vertical gap */
+}
+#copyLinkBtn:hover {
+    transform: scale(1.05);
+    background-color: #2a5eca;
+}
+
+/* Hide border on the teams container initially */
+#teamsContainer {
+    margin-top: 2rem;
+    border: none; /* hidden until teams are generated */
+    padding: 1rem;
+    border-radius: 0.5rem;
+    min-height: 40px; /* to avoid 0-height container */
+}
+
+/* Full-screen cursor layer */
+#cursorLayer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.cursor-label {
+    position: absolute;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+    transform: translate(-50%, -50%);
+    white-space: nowrap;
+}
+
+#playersList {
+    list-style-type: none;
+    padding: 0;
+}
+#playersList li {
+    margin: 0.5rem 0;
+    font-weight: bold;
+}
+
+/* For the admin DnD panel */
+.dnd-container {
+    max-width: 700px;
+    margin: 2rem auto;
+    text-align: center;
+    background-color: #fff5dc;
+    border: 2px solid #ff0080;
+    border-radius: 0.8rem;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+.dnd-container input {
+    margin-bottom: 0.5rem;
+}
+.dnd-teams {
+    display: flex;
+    gap: 2rem;
+    margin-top: 1rem;
+    justify-content: center;
+}
+.dnd-box {
+    width: 200px;
+    min-height: 180px;
+    border: 2px dashed #666;
+    border-radius: 5px;
+    padding: 0.5rem;
+    margin-bottom: 1rem;
+}
+.player-item {
+    margin: 0.3rem;
+    padding: 0.3rem;
+    border: 1px solid #999;
+    border-radius: 3px;
+    cursor: grab;
+    background-color: #fafafa;
+}
+.dnd-box.drag-over {
+    border-color: #ff0080;
+}
